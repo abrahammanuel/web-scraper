@@ -5,7 +5,7 @@ logging.basicConfig(level=logging.INFO)
 from urllib.parse import urlparse
 import os
 import pandas as pd
-
+import hashlib
 
 logger = logging.getLogger(__name__)
 
@@ -18,7 +18,9 @@ def main(filename):
     df = _add_newspaper_uid_column(df,  newspaper_uid) # 3
     df = _extraer_host(df) # 4
     df = _fill_missing_titles(df)
-    
+    df = _generate_uids_for_row(df)
+    df = _remove_new_lines_from(df)
+
     return df
     
 def _read_data(filename): 
@@ -68,7 +70,28 @@ def _save_articles(namefile, data):
     print(data.columns)
     with open(newFileName,  mode='w+', encoding='utf-8') as f: 
         data.to_csv(f, sep="|", index=False)  
-        
+
+def _generate_uids_for_row(df): 
+    logger.info('Generating uids for each row')        
+    uids = ( df
+            .apply(lambda row: hashlib.md5(bytes(row['url'].encode())), axis=1 )
+            .apply(lambda hash_obj: hash_obj.hexdigest())
+            )
+    df['uid'] = uids
+    return df.set_index('uid')
+
+def _remove_new_lines_from(df): 
+    logger.info('Removing new lines from body')
+    stripped_body = (df
+                    .apply(lambda row: row['body'], axis=1)
+                    .apply(lambda body: list(body))
+                    .apply(lambda letters: list(map(lambda letter: letter.replace('\n', ' '), letters)))
+                    .apply(lambda letters: list(map(lambda letter: letter.replace('\r', ' '), letters)))
+                    .apply(lambda letters:  ''.join(letters))
+                    )
+    df['body'] = stripped_body
+
+    return df
     
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
