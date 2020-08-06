@@ -17,20 +17,23 @@ logger = logging.getLogger(__name__)
 is_well_formed_Link = re.compile(r'^https?://.+/.+$')#https://example.com/hello
 is_root_path = re.compile(r'^/.+$')  #  /sometex123
 
-def _news_scraper(news_site_uid, num=None):
+def _news_scraper(news_site_uid, num='0'):
+    num = int(num)
     ''' returns a list with data''' 
     host = config()['news_sites'][news_site_uid]['url']
     logging.info('Beginning scraper for {}'.format(host))
     
     homepage = news.HomePage(news_site_uid,  host)
     Larticles = []
+    if num != None: logger.warning('just {} articles will be fetched'.format(num))
     for link in homepage.article_links: 
         article = _fetch_article(news_site_uid,  host,  link)
 
         if article: 
             logger.info('Article fetched!')
             Larticles.append(article)
-            if not num: continue 
+            if num == 0:
+                continue 
             elif len(Larticles)>num: 
                 break
 
@@ -39,6 +42,7 @@ def _news_scraper(news_site_uid, num=None):
 
 
 def _fetch_article(news_site_uid,  host,  link): 
+    '''method to fetch one article passed  '''
     logger.info('start fetching article at {}'.format(link))
 
     article = None
@@ -48,7 +52,7 @@ def _fetch_article(news_site_uid,  host,  link):
         logger.warning('Error while fetching the article',  exc_info = False)
     
     if article and not article.body : 
-        logger.warning('Invalid article. There is no body or title')
+        logger.warning('Invalid article. There is no body ')
         return None
     
     return article
@@ -63,10 +67,9 @@ def _build_link(host,  link):
         return '{host}/{uri}'.format(host=host, uri=link)
 
 def _save_articles(news_site_uid,  articles): 
-    ''' method for save tha data inaa csv file'''
-    now = datetime.datetime.now().strftime('%Y_%m_%d')
-    out_file_name = 'csv_files/{news_site_uid}_{datetime}_articles.csv'.format(news_site_uid=news_site_uid,
-        datetime=now)
+    ''' method for save tha data inaa csv file; no return'''
+    #now = datetime.datetime.now().strftime('%Y_%m_%d')
+    out_file_name = '../csv_files/{news_site_uid}.csv'.format(news_site_uid=news_site_uid)
     csv_headers = list(filter(lambda property: not property.startswith('_'),dir(articles[0]) ))
 
     with open(out_file_name,  mode='w+', encoding='utf-8') as f: 
@@ -86,7 +89,7 @@ if __name__ == '__main__':
             help='the news site you want to scrape', 
             type=str, 
             choices= news_site_choices)
-    parser.add_argument('int', type=int, nargs='?')
+    parser.add_argument('int', type=str, nargs='?')
 
     args = parser.parse_args()
     
