@@ -4,7 +4,7 @@ import subprocess
 import shlex
 
 logger = logging.getLogger(__name__)
-news_sites_uids = ['elpais'] #, 'elpais'
+news_sites_uids = ['elpais', 'eluniversal'] #, 'elpais'
 
 def main(): 
     _extract()
